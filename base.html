@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Wanderlust AI | Intelligent Travel</title>
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600&family=Outfit:wght@500;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ==========================================
+           1. GLOBAL VARIABLES & TYPOGRAPHY
+           ========================================== */
+        :root {
+            /* 🌊 NEW DEEP BLUE & TEAL PALETTE */
+            --brand-deep-blue: #0A2540;
+            --brand-teal: #00B4D8;
+            --brand-gradient: linear-gradient(135deg, #0A2540 0%, #00B4D8 100%);
+
+            --glass-bg-light: rgba(255, 255, 255, 0.85);
+            --glass-bg-dark: rgba(15, 23, 42, 0.75); /* Darker slate for dark mode */
+            --glass-border-light: rgba(255, 255, 255, 0.6);
+            --glass-border-dark: rgba(255, 255, 255, 0.08);
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--bs-body-bg);
+            transition: background-color 0.4s ease, color 0.4s ease;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        h1, h2, h3, h4, h5, h6, .navbar-brand {
+            font-family: 'Outfit', sans-serif;
+            letter-spacing: -0.5px;
+        }
+
+        /* 🌟 CUSTOM TEXT SELECTION (TEAL) 🌟 */
+        ::selection {
+            background: rgba(0, 180, 216, 0.3);
+            color: inherit;
+        }
+
+        /* 🌟 CUSTOM SCROLLBAR (TEAL) 🌟 */
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 180, 216, 0.4);
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 180, 216, 0.7);
+        }
+        [data-bs-theme="dark"] ::-webkit-scrollbar-thumb {
+            background: rgba(0, 180, 216, 0.5);
+        }
+
+        /* ==========================================
+           2. MODERN MESH GRADIENT BACKGROUND
+           ========================================== */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -50%; left: -50%; width: 200%; height: 200%;
+            /* Deep Blue on the left, Teal on the right */
+            background: radial-gradient(circle at 15% 50%, rgba(10, 37, 64, 0.05) 0%, transparent 50%),
+                        radial-gradient(circle at 85% 30%, rgba(0, 180, 216, 0.06) 0%, transparent 50%);
+            z-index: -1;
+            pointer-events: none;
+        }
+        [data-bs-theme="dark"] body::before {
+            background: radial-gradient(circle at 15% 50%, rgba(10, 37, 64, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 85% 30%, rgba(0, 180, 216, 0.15) 0%, transparent 50%);
+        }
+
+        /* ==========================================
+           3. FLOATING ISLAND NAVBAR
+           ========================================== */
+        .navbar-floating-wrapper {
+            position: sticky;
+            top: 20px;
+            z-index: 1030;
+            padding: 0 20px;
+            transition: transform 0.3s ease;
+        }
+
+        .navbar-floating {
+            background: var(--glass-bg-light);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid var(--glass-border-light);
+            border-radius: 50px;
+            padding: 0.5rem 1.5rem;
+            box-shadow: 0 10px 40px rgba(10, 37, 64, 0.06);
+            transition: all 0.3s ease;
+        }
+        [data-bs-theme="dark"] .navbar-floating {
+            background: var(--glass-bg-dark);
+            border: 1px solid var(--glass-border-dark);
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.4);
+        }
+
+        .navbar-brand {
+            font-weight: 800;
+            font-size: 1.4rem;
+            background: var(--brand-gradient);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            transition: transform 0.3s ease;
+        }
+        .navbar-brand:hover {
+            transform: scale(1.02);
+        }
+
+        .navbar-brand i {
+            -webkit-text-fill-color: initial;
+            color: var(--brand-teal); /* Teal Icon */
+        }
+
+        .nav-link {
+            font-weight: 500;
+            color: var(--bs-body-color);
+            border-radius: 20px;
+            padding: 8px 16px !important;
+            transition: all 0.2s ease;
+        }
+        .nav-link:hover {
+            background: rgba(0, 180, 216, 0.1);
+            color: var(--brand-teal) !important;
+        }
+
+        /* ==========================================
+           4. PREMIUM BUTTONS & CARDS
+           ========================================== */
+        .btn {
+            border-radius: 50px;
+            padding: 10px 24px;
+            font-weight: 600;
+            letter-spacing: 0.3px;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .btn-primary {
+            background: var(--brand-gradient);
+            border: none;
+            box-shadow: 0 4px 15px rgba(0, 180, 216, 0.25);
+            color: white !important;
+        }
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            /* Darker blue to brighter teal on hover */
+            background: linear-gradient(135deg, #061A2E 0%, #00C6FF 100%);
+            box-shadow: 0 8px 25px rgba(0, 180, 216, 0.4);
+        }
+
+        .card {
+            background: var(--glass-bg-light);
+            backdrop-filter: blur(12px);
+            border: 1px solid var(--glass-border-light);
+            border-radius: 24px;
+            box-shadow: 0 10px 30px rgba(10, 37, 64, 0.04);
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+            overflow: hidden;
+        }
+        [data-bs-theme="dark"] .card {
+            background: var(--glass-bg-dark);
+            border: 1px solid var(--glass-border-dark);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+
+        .hover-card:hover {
+            transform: translateY(-5px) scale(1.01);
+            box-shadow: 0 20px 40px rgba(10, 37, 64, 0.1) !important;
+        }
+        [data-bs-theme="dark"] .hover-card:hover {
+            box-shadow: 0 20px 40px rgba(0, 180, 216, 0.15) !important;
+        }
+
+        /* ==========================================
+           5. UTILITIES & ANIMATIONS
+           ========================================== */
+        .form-control, .form-select {
+            border-radius: 12px;
+            padding: 12px 16px;
+            border: 1px solid rgba(10, 37, 64, 0.1);
+            background-color: rgba(255,255,255,0.7);
+            transition: all 0.2s;
+        }
+        [data-bs-theme="dark"] .form-control, [data-bs-theme="dark"] .form-select {
+            background-color: rgba(0,0,0,0.2);
+            border-color: rgba(255,255,255,0.1);
+            color: white;
+        }
+        .form-control:focus, .form-select:focus {
+            box-shadow: 0 0 0 4px rgba(0, 180, 216, 0.15);
+            border-color: var(--brand-teal);
+        }
+
+        .fade-in-up {
+            animation: fadeInUp 0.6s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+            opacity: 0;
+            transform: translateY(20px);
+        }
+        @keyframes fadeInUp {
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* 🌟 GLASS FOOTER 🌟 */
+        .footer-glass {
+            background: var(--glass-bg-light);
+            backdrop-filter: blur(20px);
+            border-top: 1px solid var(--glass-border-light);
+        }
+        [data-bs-theme="dark"] .footer-glass {
+            background: var(--glass-bg-dark);
+            border-top: 1px solid var(--glass-border-dark);
+        }
+
+        /* Customizing generic text-primary to use our Teal */
+        .text-theme-accent {
+            color: var(--brand-teal) !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="navbar-floating-wrapper container" id="main-nav">
+        <nav class="navbar navbar-expand-lg navbar-floating">
+            <a class="navbar-brand" href="/">
+                <i class="bi bi-airplane-engines-fill"></i> Wanderlust
+            </a>
+
+            <button class="navbar-toggler border-0" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <i class="bi bi-list fs-2 text-theme-accent"></i>
+            </button>
+
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <ul class="navbar-nav ms-auto align-items-center gap-1">
+
+                    <li class="nav-item me-2">
+                        <button class="btn btn-sm btn-light rounded-circle border-0 shadow-sm d-flex align-items-center justify-content-center" id="theme-toggle" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Toggle Theme" style="width: 40px; height: 40px;">
+                            <i class="bi bi-moon-stars-fill text-theme-accent" id="theme-icon"></i>
+                        </button>
+                    </li>
+
+                    {% if current_user.is_authenticated %}
+                        <li class="nav-item px-2 d-none d-lg-block">
+                            <span class="small fw-semibold text-muted">Hey, {{ current_user.username }}</span>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('ai_planner') }}">
+                                <i class="bi bi-stars text-theme-accent me-1"></i> AI Plan
+                            </a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="/">Dashboard</a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('profile') }}">Profile</a>
+                        </li>
+
+                        <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
+                            <a class="btn btn-primary btn-sm" href="/add">+ New Trip</a>
+                        </li>
+
+                        <li class="nav-item">
+                            <a class="nav-link" href="{{ url_for('discover') }}">
+                                <i class="bi bi-globe text-theme-accent me-1"></i> Discovery
+                            </a>
+                        </li>
+
+
+                        <li class="nav-item ms-lg-2 mt-2 mt-lg-0">
+                            <a class="btn btn-light text-danger btn-sm rounded-circle d-flex align-items-center justify-content-center shadow-sm" href="/logout" data-bs-toggle="tooltip" data-bs-placement="bottom" title="Logout" style="width: 40px; height: 40px;">
+                                <i class="bi bi-power"></i>
+                            </a>
+                        </li>
+                    {% else %}
+                        <li class="nav-item"><a class="nav-link" href="/login">Log In</a></li>
+                        <li class="nav-item ms-lg-2 mt-2 mt-lg-0"><a class="btn btn-primary" href="/register">Sign Up</a></li>
+                    {% endif %}
+                </ul>
+            </div>
+        </nav>
+    </div>
+
+    <div class="container mt-5 pt-3 flex-grow-1" style="max-width: 1100px;">
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="row justify-content-center fade-in-up" style="animation-delay: 0.1s;">
+                    <div class="col-md-8">
+                        {% for category, message in messages %}
+                            <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm border-0 rounded-4 mb-4 d-flex align-items-center" role="alert" style="background: var(--glass-bg-light); backdrop-filter: blur(10px);">
+                                {% if category == 'success' %}
+                                    <div class="bg-success bg-opacity-10 text-success rounded-circle p-2 me-3"><i class="bi bi-check-lg fs-5"></i></div>
+                                {% elif category == 'danger' %}
+                                    <div class="bg-danger bg-opacity-10 text-danger rounded-circle p-2 me-3"><i class="bi bi-shield-x fs-5"></i></div>
+                                {% else %}
+                                    <div class="bg-info bg-opacity-10 text-theme-accent rounded-circle p-2 me-3"><i class="bi bi-info-circle fs-5"></i></div>
+                                {% endif %}
+                                <div class="fw-medium">{{ message }}</div>
+                                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                            </div>
+                        {% endfor %}
+                    </div>
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <div class="fade-in-up" style="animation-delay: 0.2s;">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <footer class="py-5 mt-auto text-center footer-glass mt-5">
+        <div class="container">
+            <h4 class="fw-bold mb-3" style="font-family: 'Outfit', sans-serif;">
+                <span style="background: var(--brand-gradient); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Wanderlust AI</span>
+            </h4>
+            <p class="text-muted small fw-medium mb-0">Built with Python, Flask & Generative AI</p>
+            <p class="text-muted small opacity-50">&copy; 2026 All Rights Reserved.</p>
+        </div>
+    </footer>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        // 🌟 Initialize Bootstrap Tooltips
+        document.addEventListener("DOMContentLoaded", function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'))
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl)
+            })
+        });
+
+        // 🌟 Hide Navbar on Scroll Down, Show on Scroll Up
+        let lastScrollTop = 0;
+        const navbar = document.getElementById('main-nav');
+
+        window.addEventListener('scroll', function() {
+            let scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+            if (scrollTop > lastScrollTop && scrollTop > 100) {
+                navbar.style.transform = 'translateY(-150%)'; // Hide
+            } else {
+                navbar.style.transform = 'translateY(0)'; // Show
+            }
+            lastScrollTop = scrollTop;
+        });
+
+        // 🌟 Theme Toggle Script
+        const toggleBtn = document.getElementById('theme-toggle');
+        const themeIcon = document.getElementById('theme-icon');
+        const htmlElement = document.documentElement;
+
+        const savedTheme = localStorage.getItem('theme') || 'light';
+        htmlElement.setAttribute('data-bs-theme', savedTheme);
+        updateIcon(savedTheme);
+
+        toggleBtn.addEventListener('click', () => {
+            const currentTheme = htmlElement.getAttribute('data-bs-theme');
+            const newTheme = currentTheme === 'light' ? 'dark' : 'light';
+
+            htmlElement.setAttribute('data-bs-theme', newTheme);
+            localStorage.setItem('theme', newTheme);
+            updateIcon(newTheme);
+        });
+
+        function updateIcon(theme) {
+            if (theme === 'dark') {
+                themeIcon.classList.replace('bi-moon-stars-fill', 'bi-sun-fill');
+                toggleBtn.classList.replace('btn-light', 'btn-dark');
+            } else {
+                themeIcon.classList.replace('bi-sun-fill', 'bi-moon-stars-fill');
+                toggleBtn.classList.replace('btn-dark', 'btn-light');
+            }
+        }
+    </script>
+</body>
+</html>
