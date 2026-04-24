@@ -1,0 +1,888 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div id="trip-content">
+
+    <div class="row mb-4 align-items-center">
+        <div class="col-md-6">
+            <h1 class="fw-bold">{{ trip.destination }}</h1>
+            <div class="d-flex align-items-center gap-3 text-muted">
+                <span><i class="bi bi-calendar"></i> {{ trip.start_date.strftime('%b %d') }} - {{ trip.end_date.strftime('%b %d, %Y') }}</span>
+
+                <span class="badge bg-light text-dark border d-none" id="live-clock-badge">
+                    <i class="bi bi-clock me-1"></i> <span id="live-clock">--:--</span> local time
+                </span>
+            </div>
+        </div>
+
+        <div class="col-md-6 text-end">
+            <button onclick="copyShareLink()" class="btn btn-outline-primary btn-sm rounded-pill me-2 mb-3 d-print-none">
+                🔗 Share Trip
+            </button>
+
+            <button onclick="copyItineraryText()" class="btn btn-outline-success btn-sm rounded-pill me-2 mb-3 d-print-none" title="Copy as Text List">
+                <i class="bi bi-whatsapp"></i> Copy Text
+            </button>
+
+            <button onclick="downloadPDF()" class="btn btn-outline-danger btn-sm rounded-pill me-2 mb-3 d-print-none" data-html2canvas-ignore="true">
+                📄 Download PDF
+            </button>
+
+            <div class="card bg-white border-0 shadow-sm d-inline-block text-start" style="min-width: 250px;">
+                <div class="card-body p-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <small class="text-muted text-uppercase">Budget Status</small>
+
+                        <div class="dropdown d-print-none" data-html2canvas-ignore="true">
+                            <button class="btn btn-light btn-sm dropdown-toggle py-0" type="button" data-bs-toggle="dropdown">
+                                {{ currency_symbol }}
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end">
+                                <li><a class="dropdown-item" href="?currency=USD">🇺🇸 USD</a></li>
+                                <li><a class="dropdown-item" href="?currency=EUR">🇪🇺 EUR</a></li>
+                                <li><a class="dropdown-item" href="?currency=GBP">🇬🇧 GBP</a></li>
+                                <li><a class="dropdown-item" href="?currency=JPY">🇯🇵 JPY</a></li>
+                                <li><a class="dropdown-item" href="?currency=INR">🇮🇳 INR</a></li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="progress my-2" style="height: 10px;">
+                        <div class="progress-bar {% if total_spent > trip.budget %}bg-danger{% else %}bg-success{% endif %}"
+                             role="progressbar"
+                             style="width: {{ (total_spent / trip.budget) * 100 }}%">
+                        </div>
+                    </div>
+
+                    <div class="d-flex justify-content-between fw-bold">
+                        <span>{{ "{:,.0f}".format(display_spent) }} <small>{{ currency_symbol }}</small></span>
+                        <span class="text-muted">/ {{ "{:,.0f}".format(display_budget) }} <small>{{ currency_symbol }}</small></span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-lg-8">
+            <ul class="nav nav-pills mb-3 d-print-none" data-html2canvas-ignore="true" id="pills-tab" role="tablist">
+                <li class="nav-item">
+                    <button class="nav-link active rounded-pill" id="pills-itinerary-tab" data-bs-toggle="pill" data-bs-target="#pills-itinerary" type="button">📅 Itinerary</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill ms-2" id="pills-budget-tab" data-bs-toggle="pill" data-bs-target="#pills-budget" type="button">💸 Expenses</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill ms-2" id="pills-packing-tab" data-bs-toggle="pill" data-bs-target="#pills-packing" type="button">🎒 Loadout</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill ms-2" id="pills-deals-tab" data-bs-toggle="pill" data-bs-target="#pills-deals" type="button" onclick="loadDeals()">📦 Deals</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill ms-2" id="pills-docs-tab" data-bs-toggle="pill" data-bs-target="#pills-docs" type="button">📂 Docs</button>
+                </li>
+                <li class="nav-item">
+                    <button class="nav-link rounded-pill ms-2" id="pills-journal-tab" data-bs-toggle="pill" data-bs-target="#pills-journal" type="button">📔 Diary</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="pills-tabContent">
+
+                <div class="tab-pane fade show active" id="pills-itinerary">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">Trip Timeline</h5>
+
+                            <form action="/trip/{{ trip.id }}/add_activity" method="POST" class="row g-2 mb-4 d-print-none" data-html2canvas-ignore="true">
+                                <div class="col-md-3">
+                                    <input type="date" name="date" class="form-control form-control-sm" required value="{{ trip.start_date }}">
+                                </div>
+                                <div class="col-md-2">
+                                    <input type="time" name="time" class="form-control form-control-sm">
+                                </div>
+                                <div class="col-md-4">
+                                    <input type="text" name="name" class="form-control form-control-sm" placeholder="Activity" required>
+                                </div>
+                                <div class="col-md-2">
+                                    <select name="type" class="form-select form-select-sm">
+                                        <option>Sightseeing</option>
+                                        <option>Flight</option>
+                                        <option>Food</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="submit" class="btn btn-primary btn-sm w-100">+</button>
+                                </div>
+                            </form>
+
+                            <div class="timeline">
+                                {% for activity in trip.activities|sort(attribute='date,time') %}
+                                <div class="d-flex border-bottom py-3 align-items-center hover-card px-2 rounded transition-all group-action">
+                                    <div class="me-3 text-center" style="min-width: 60px;">
+                                        <div class="fw-bold fs-5">{{ activity.date.strftime('%d') }}</div>
+                                        <div class="small text-muted text-uppercase">{{ activity.date.strftime('%b') }}</div>
+                                    </div>
+                                    <div class="me-3">
+                                        <div class="rounded-circle d-flex align-items-center justify-content-center shadow-sm"
+                                             style="width: 45px; height: 45px;
+                                             {% if activity.type == 'Flight' %}background: #e3f2fd; color: #0d6efd;
+                                             {% elif activity.type == 'Food' %}background: #fff3cd; color: #ffc107;
+                                             {% elif activity.type == 'Sightseeing' %}background: #d1e7dd; color: #198754;
+                                             {% else %}background: #f8f9fa; color: #6c757d;{% endif %}">
+
+                                            {% if activity.type == 'Flight' %}<i class="bi bi-airplane-fill fs-5"></i>
+                                            {% elif activity.type == 'Food' %}<i class="bi bi-cup-hot-fill fs-5"></i>
+                                            {% elif activity.type == 'Sightseeing' %}<i class="bi bi-camera-fill fs-5"></i>
+                                            {% else %}<i class="bi bi-geo-alt-fill fs-5"></i>{% endif %}
+                                        </div>
+                                    </div>
+                                    <div class="flex-grow-1">
+                                        <h6 class="fw-bold mb-0 ">{{ activity.name }}</h6>
+                                        <div class="text-muted small">
+                                            <i class="bi bi-clock me-1"></i>{{ activity.time }} • {{ activity.type }}
+                                        </div>
+                                    </div>
+                                    <a href="/delete_activity/{{ activity.id }}"
+                                       class="btn btn-link text-danger p-0 ms-2 opacity-50 hover-opacity-100"
+                                       onclick="return confirm('Remove this activity?')">
+                                        <i class="bi bi-trash"></i>
+                                    </a>
+                                    <a href="https://www.google.com/maps/search/?api=1&query={{ activity.name }}+{{ trip.destination }}"
+                                       target="_blank"
+                                       class="btn btn-link text-primary p-0 ms-2"
+                                       title="Navigate on Google Maps">
+                                        <i class="bi bi-cursor-fill"></i>
+                                    </a>
+                                </div>
+                                {% else %}
+                                <div class="text-center py-5 opacity-50">
+                                    <i class="bi bi-map fs-1"></i>
+                                    <p class="mt-2">No activities yet.</p>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="pills-budget">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">Expense Log</h5>
+
+                            <form action="/trip/{{ trip.id }}/add_expense" method="POST" class="row g-2 mb-4 bg-light p-2 rounded d-print-none">
+                                <div class="col-md-5">
+                                    <input type="text" name="name" class="form-control form-control-sm" placeholder="Item" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <select name="category" class="form-select form-select-sm">
+                                        <option>Transport</option>
+                                        <option>Food</option>
+                                        <option>Accommodation</option>
+                                        <option>Shopping</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-3">
+                                    <input type="number" step="0.01" name="amount" class="form-control form-control-sm" placeholder="Amount" required>
+                                </div>
+                                <div class="col-md-1">
+                                    <button type="submit" class="btn btn-success btn-sm w-100">{{ currency_symbol }}</button>
+                                </div>
+                            </form>
+
+                            <table class="table table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Item</th>
+                                        <th>Category</th>
+                                        <th class="text-end">Cost</th>
+                                        <th></th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for expense in trip.expenses %}
+                                    <tr class="align-middle">
+                                        <td>
+                                            <div class="d-flex align-items-center">
+                                                <div class="rounded-circle bg-light d-flex align-items-center justify-content-center me-3" style="width: 35px; height: 35px;">
+                                                    <i class="bi bi-receipt text-secondary"></i>
+                                                </div>
+                                                <span class="fw-medium">{{ expense.name }}</span>
+                                            </div>
+                                        </td>
+                                        <td><span class="badge bg-secondary-subtle text-secondary rounded-pill">{{ expense.category }}</span></td>
+                                        <td class="text-end fw-bold">{{ currency_symbol }}{{ "{:,.2f}".format(expense.amount) }}</td>
+                                        <td class="text-end" style="width: 50px;">
+                                            <a href="/delete_expense/{{ expense.id }}"
+                                               class="text-danger small opacity-50 hover-opacity-100"
+                                               onclick="return confirm('Remove expense?')">
+                                                <i class="bi bi-x-circle-fill fs-5"></i>
+                                            </a>
+                                        </td>
+                                    </tr>
+                                    {% else %}
+                                    <tr>
+                                        <td colspan="4" class="text-center py-4 text-muted">No expenses yet.</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="pills-packing">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-center mb-3 pb-3 border-bottom">
+                                <h5 class="fw-bold mb-0">Smart Packing List</h5>
+                                <button id="btn-generate-packing" class="btn btn-sm btn-outline-primary rounded-pill fw-bold" onclick="generatePacking({{ trip.id }})">
+                                    <i class="bi bi-cpu me-1"></i> Auto-Generate
+                                </button>
+                            </div>
+
+                            <div id="packing-list-container">
+                                {% if trip.tasks %}
+                                    <ul class="list-group list-group-flush">
+                                    {% for task in trip.tasks %}
+                                        <li class="list-group-item d-flex align-items-center py-3 border-0 border-bottom">
+                                            <input class="form-check-input me-3 packing-checkbox fs-5 mt-0" type="checkbox" data-id="{{ task.id }}" {% if task.completed %}checked{% endif %} style="cursor: pointer;">
+                                            <span class="fw-medium {% if task.completed %}text-decoration-line-through text-muted{% endif %}" id="task-text-{{ task.id }}">{{ task.name }}</span>
+                                        </li>
+                                    {% endfor %}
+                                    </ul>
+                                {% else %}
+                                    <div class="text-center py-5 text-muted">
+                                        <i class="bi bi-backpack2 fs-1 d-block mb-2 opacity-50"></i>
+                                        <p class="small mb-0">No items generated yet. Initialize the AI to create your custom loadout.</p>
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="pills-docs">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">Documents</h5>
+                            <form action="/trip/{{ trip.id }}/upload" method="POST" enctype="multipart/form-data" class="row g-2 mb-4 d-print-none">
+                                <div class="col-md-9">
+                                    <input type="file" name="file" class="form-control" required>
+                                </div>
+                                <div class="col-md-3">
+                                    <button type="submit" class="btn btn-primary w-100">Upload</button>
+                                </div>
+                            </form>
+                            <div class="row g-3">
+                                {% for doc in trip.documents %}
+                                <div class="col-md-4">
+                                    <div class="card h-100 border bg-light p-3 text-center">
+                                        <h6 class="text-truncate">{{ doc.filename }}</h6>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="pills-journal">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">Travel Diary</h5>
+                            <form action="/trip/{{ trip.id }}/add_journal" method="POST" class="mb-4 d-print-none">
+                                <div class="input-group">
+                                    <textarea name="content" class="form-control" rows="2" placeholder="Write a memory... (e.g. 'Best pizza ever!')" required></textarea>
+                                    <button class="btn btn-primary" type="submit">Save</button>
+                                </div>
+                            </form>
+                            <div class="journal-feed">
+                                {% for entry in trip.journal_entries|sort(attribute='date_posted', reverse=True) %}
+                                <div class="d-flex align-items-start border-bottom py-3">
+                                    <div class="me-3 text-center" style="min-width: 60px;">
+                                        <div class="text-muted small">{{ entry.date_posted.strftime('%H:%M') }}</div>
+                                        <div class="fw-bold text-dark">{{ entry.date_posted.strftime('%b %d') }}</div>
+                                    </div>
+                                    <div class="bg-light p-3 rounded w-100 position-relative">
+                                        <i class="bi bi-quote text-secondary opacity-25 position-absolute top-0 start-0 m-2 fs-1"></i>
+                                        <p class="mb-0 text-dark position-relative" style="z-index: 1;">{{ entry.content }}</p>
+                                    </div>
+                                </div>
+                                {% else %}
+                                <div class="text-center text-muted py-5">
+                                    <i class="bi bi-journal-album fs-1 d-block mb-2"></i>
+                                    No memories recorded yet.
+                                </div>
+                                {% endfor %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="tab-pane fade" id="pills-deals">
+                    <div class="card border-0 shadow-sm">
+                        <div class="card-body">
+                            <h5 class="fw-bold mb-3">Recommended Packages</h5>
+                            <p class="text-muted small">Curated deals from top travel sites for <strong>{{ trip.destination }}</strong>.</p>
+
+                            <div id="deals-loader" class="text-center py-5">
+                                <div class="spinner-border text-primary" role="status"></div>
+                                <div class="mt-2 text-muted small">Hunting for best prices...</div>
+                            </div>
+
+                            <div id="deals-content" class="row g-3 d-none">
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+            </div> 
+        </div>
+
+        <div class="col-lg-4">
+
+            <div class="card border-0 shadow-sm mb-4" data-html2canvas-ignore="true">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h6 class="fw-bold mb-0">🌍 Destination Intel</h6>
+                        <span id="intel-flag" class="badge bg-light text-dark border p-2" style="font-size: 1.5rem; display: none;"></span>
+                    </div>
+
+                    <div id="intel-loader" class="text-center py-2">
+                        <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                        <span class="ms-2 small text-muted">Loading country info...</span>
+                    </div>
+
+                    <div id="intel-content" class="d-none">
+                        <div class="row g-2 text-center">
+                            <div class="col-4">
+                                <div class="bg-light rounded p-2">
+                                    <div class="small text-muted text-uppercase" style="font-size: 0.7rem;">Currency</div>
+                                    <div class="fw-bold text-dark" id="intel-currency">-</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-light rounded p-2">
+                                    <div class="small text-muted text-uppercase" style="font-size: 0.7rem;">Language</div>
+                                    <div class="fw-bold text-dark text-truncate" id="intel-lang">-</div>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="bg-light rounded p-2">
+                                    <div class="small text-muted text-uppercase" style="font-size: 0.7rem;">Time</div>
+                                    <div class="fw-bold text-dark" id="intel-time">UTC</div>
+                                </div>
+                            </div>
+                        </div>
+                        <a href="#" id="intel-map" target="_blank" class="btn btn-outline-secondary btn-sm w-100 mt-3 rounded-pill">
+                            View on Google Maps ↗
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4" data-html2canvas-ignore="true">
+                <div class="card-header bg-white border-0 pt-3 pb-0">
+                    <ul class="nav nav-tabs card-header-tabs" role="tablist">
+                        <li class="nav-item">
+                            <button class="nav-link active small fw-bold" data-bs-toggle="tab" data-bs-target="#tab-essentials">
+                                <i class="bi bi-info-circle me-1"></i>Essentials
+                            </button>
+                        </li>
+                        <li class="nav-item">
+                            <button class="nav-link small fw-bold" data-bs-toggle="tab" data-bs-target="#tab-converter">
+                                <i class="bi bi-currency-exchange me-1"></i>Converter
+                            </button>
+                        </li>
+                    </ul>
+                </div>
+
+                <div class="card-body">
+                    <div class="tab-content">
+                        <div class="tab-pane fade show active" id="tab-essentials">
+                            <div id="tool-loader" class="text-center py-3">
+                                <div class="spinner-border text-primary spinner-border-sm" role="status"></div>
+                            </div>
+
+                            <div id="tool-content" class="d-none">
+                                <div class="mb-3">
+                                    <div class="small text-muted text-uppercase fw-bold"><i class="bi bi-passport me-1"></i>Visa Policy</div>
+                                    <div class="fw-medium text-dark" id="tool-visa">--</div>
+                                </div>
+
+                                <div class="mb-3">
+                                    <div class="small text-muted text-uppercase fw-bold"><i class="bi bi-plug-fill me-1"></i>Power & Plugs</div>
+                                    <div class="d-flex align-items-center">
+                                        <span class="fs-4 me-2">🔌</span>
+                                        <div>
+                                            <div class="fw-bold text-dark" id="tool-plug">--</div>
+                                            <div class="small text-muted" id="tool-voltage">--</div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div>
+                                    <div class="small text-muted text-uppercase fw-bold"><i class="bi bi-cash-stack me-1"></i>Tipping Custom</div>
+                                    <div class="small text-dark fst-italic" id="tool-tipping">--</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="tab-pane fade" id="tab-converter">
+                            <label class="small text-muted mb-1">Convert <span id="conv-from">USD</span> to <span id="conv-to">...</span></label>
+                            <div class="input-group mb-3">
+                                <span class="input-group-text">$</span>
+                                <input type="number" id="amount-input" class="form-control" value="1" oninput="convertCurrency()">
+                            </div>
+                            <div class="text-center">
+                                <i class="bi bi-arrow-down text-muted"></i>
+                            </div>
+                            <div class="bg-light rounded p-2 text-center mt-2">
+                                <div class="display-6 fw-bold text-success" id="conv-result">...</div>
+                                <div class="small text-muted" id="conv-rate">Loading rates...</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4">
+                <div class="card-header bg-white border-0"><h6 class="fw-bold mb-0">📍 Location</h6></div>
+                <div class="card-body p-0">
+                    <div id="map" style="height: 250px; width: 100%;"></div>
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4 pdf-exclude">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Spending Breakdown</h6>
+                    {% if trip.expenses %}
+                        <canvas id="expenseChart"></canvas>
+                    {% else %}
+                        <p class="text-muted small">No data yet.</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4" data-html2canvas-ignore="true">
+                <div class="card-body">
+                    <h6 class="fw-bold mb-3">Weather</h6>
+                    {% if weather %}
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div class="display-4 fw-bold text-primary">{{ weather.temperature }}°C</div>
+                            <div class="text-end fw-bold">{{ weather.windspeed }} km/h <div class="small text-muted">Wind</div></div>
+                        </div>
+                    {% else %}
+                        <p class="text-muted small">Unavailable</p>
+                    {% endif %}
+                </div>
+            </div>
+
+            <div class="card border-0 shadow-sm mb-4 bg-danger-subtle d-print-none">
+                <div class="card-body">
+                    <h6 class="fw-bold text-danger mb-3">
+                        <i class="bi bi-shield-exclamation me-2"></i>Emergency SOS
+                    </h6>
+
+                    <button onclick="loadSOS()" class="btn btn-sm btn-danger w-100 mb-2">
+                        Load Numbers
+                    </button>
+
+                    <div id="sos-content" class="d-none row g-2 text-center">
+                        <div class="col-4">
+                            <div class="bg-white rounded p-1">
+                                <small>POLICE</small>
+                                <div class="fw-bold text-danger" id="sos-police">--</div>
+                            </div>
+                        </div>
+
+                        <div class="col-4">
+                            <div class="bg-white rounded p-1">
+                                <small>AMB</small>
+                                <div class="fw-bold text-danger" id="sos-ambulance">--</div>
+                            </div>
+                        </div>
+
+                        <div class="col-4">
+                            <div class="bg-white rounded p-1">
+                                <small>FIRE</small>
+                                <div class="fw-bold text-danger" id="sos-fire">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div> 
+    </div>
+</div>
+
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+<script>
+    // 🌟 1. SMART PACKING LIST LOGIC 🌟
+    function generatePacking(tripId) {
+        const btn = document.getElementById('btn-generate-packing');
+        const container = document.getElementById('packing-list-container');
+        
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Generating...';
+        btn.disabled = true;
+        container.innerHTML = '<div class="text-center py-5"><div class="spinner-border text-primary mb-3" role="status"></div><p class="text-muted small font-monospace">Scanning weather and itinerary to build the perfect loadout...</p></div>';
+
+        fetch(`/trip/${tripId}/generate_packing`, {
+            method: 'POST'
+        })
+        .then(response => response.json())
+        .then(data => {
+            if(data.success) {
+                window.location.reload();
+            } else {
+                alert("Error generating loadout.");
+                btn.innerHTML = '<i class="bi bi-cpu me-1"></i> Auto-Generate';
+                btn.disabled = false;
+            }
+        });
+    }
+
+    // 🌟 2. HANDLE CHECKBOX STRIKETHROUGHS 🌟
+    document.addEventListener("DOMContentLoaded", function() {
+        const checkboxes = document.querySelectorAll('.packing-checkbox');
+        checkboxes.forEach(box => {
+            box.addEventListener('change', function() {
+                const taskId = this.getAttribute('data-id');
+                const textSpan = document.getElementById(`task-text-${taskId}`);
+                
+                if(this.checked) {
+                    textSpan.classList.add('text-decoration-line-through', 'text-muted');
+                } else {
+                    textSpan.classList.remove('text-decoration-line-through', 'text-muted');
+                }
+
+                // Fire the update to Python quietly in the background
+                fetch(`/task/${taskId}/toggle`, { method: 'POST' });
+            });
+        });
+    });
+
+    // --- EVERYTHING BELOW IS YOUR EXISTING SCRIPT LOGIC ---
+
+    function copyShareLink() {
+        const url = window.location.origin + "/public/{{ trip.id }}";
+        navigator.clipboard.writeText(url).then(() => {
+            alert("✅ Public Link Copied!\n\nSend this to friends: " + url);
+        }).catch(err => {
+            prompt("Copy this link:", url);
+        });
+    }
+
+    // 📄 PDF DOWNLOADER
+    function downloadPDF() {
+        const element = document.getElementById('trip-content');
+        const btn = document.querySelector('button[onclick="downloadPDF()"]');
+        const originalText = btn.innerText;
+
+        btn.innerText = "⏳ Generating...";
+        btn.disabled = true;
+
+        const excludedElements = document.querySelectorAll('.pdf-exclude');
+        excludedElements.forEach(el => el.style.display = 'none');
+
+        const opt = {
+            margin: 0.5,
+            filename: '{{ trip.destination }}_Itinerary.pdf',
+            image: { type: 'jpeg', quality: 0.98 },
+            html2canvas: { scale: 2, logging: true },
+            jsPDF: { unit: 'in', format: 'letter', orientation: 'portrait' }
+        };
+
+        html2pdf().set(opt).from(element).save().then(() => {
+            excludedElements.forEach(el => el.style.display = 'block');
+            btn.innerText = originalText;
+            btn.disabled = false;
+        }).catch(err => {
+            excludedElements.forEach(el => el.style.display = 'block');
+            alert("❌ PDF Generation Failed: " + err.message);
+            btn.innerText = originalText;
+            btn.disabled = false;
+        });
+    }
+
+    // 📊 CHART LOGIC
+    const ctx = document.getElementById('expenseChart');
+    if (ctx) {
+        new Chart(ctx, {
+            type: 'doughnut',
+            data: {
+                labels: {{ chart_data.keys() | list | tojson }},
+                datasets: [{
+                    data: {{ chart_data.values() | list | tojson }},
+                    backgroundColor: ['#2563eb', '#10b981', '#f59e0b', '#ef4444'],
+                    borderWidth: 0
+                }]
+            },
+            options: {
+                responsive: true,
+                animation: false,
+                plugins: {
+                    legend: { position: 'bottom' }
+                }
+            }
+        });
+    }
+
+    // 🌍 & 📍 DESTINATION INTEL & MAP LOGIC
+    document.addEventListener("DOMContentLoaded", function() {
+        fetch(`/trip/{{ trip.id }}/get_intel`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('intel-loader').classList.add('d-none');
+                if (!data.error) {
+                    document.getElementById('intel-content').classList.remove('d-none');
+                    const flagSpan = document.getElementById('intel-flag');
+                    flagSpan.style.display = 'inline-block';
+                    flagSpan.innerHTML = `<img src="${data.flag}" style="width: 30px; border-radius: 4px;">`;
+                    document.getElementById('intel-currency').innerText = data.currency;
+                    document.getElementById('intel-lang').innerText = data.language;
+                    document.getElementById('intel-time').innerText = data.timezone.replace("UTC", "");
+                    document.getElementById('intel-map').href = data.maps_link;
+
+                    startLiveClock(data.timezone);
+                } else {
+                    document.getElementById('intel-loader').innerHTML = '<small class="text-muted">Info unavailable.</small>';
+                }
+            })
+            .catch(err => console.error(err));
+
+        var map = L.map('map').setView([20, 0], 2);
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { attribution: '© OSM' }).addTo(map);
+
+        var destination = "{{ trip.destination }}";
+        fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${destination}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.length > 0) {
+                    var lat = data[0].lat;
+                    var lon = data[0].lon;
+                    map.setView([lat, lon], 13);
+                    L.marker([lat, lon]).addTo(map).bindPopup(`<b>${destination}</b>`).openPopup();
+                }
+            });
+    });
+
+    // 🧰 TOOLBOX LOGIC
+    document.addEventListener("DOMContentLoaded", function() {
+        fetch(`/trip/{{ trip.id }}/get_essentials`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('tool-loader').classList.add('d-none');
+
+                if (data.error) {
+                    document.getElementById('tool-content').innerHTML = '<p class="text-danger small text-center">Could not load toolbox data.</p>';
+                    document.getElementById('tool-content').classList.remove('d-none');
+                    return;
+                }
+
+                document.getElementById('tool-content').classList.remove('d-none');
+                document.getElementById('tool-visa').innerText = data.visa_policy;
+                document.getElementById('tool-plug').innerText = data.plug_type;
+                document.getElementById('tool-voltage').innerText = data.voltage;
+                document.getElementById('tool-tipping').innerText = data.tipping;
+
+                let cleanCode = "EUR"; // Default fallback
+                if (data.currency_code) {
+                    cleanCode = data.currency_code.trim().toUpperCase().substring(0, 3);
+                }
+                setupConverter(cleanCode);
+            })
+            .catch(err => console.error("Toolbox Error:", err));
+    });
+
+    // 2. Currency Converter Logic
+    let exchangeRate = 0;
+
+    function setupConverter(localCode) {
+        document.getElementById('conv-to').innerText = localCode;
+
+        fetch(`https://api.exchangerate-api.com/v4/latest/USD`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.rates[localCode]) {
+                    exchangeRate = data.rates[localCode];
+                    document.getElementById('conv-rate').innerText = `1 USD = ${exchangeRate} ${localCode}`;
+                    convertCurrency();
+                } else {
+                    document.getElementById('conv-rate').innerText = `Rate for ${localCode} unavailable`;
+                }
+            })
+            .catch(err => {
+                console.error("Exchange API Error:", err);
+                document.getElementById('conv-rate').innerText = "Offline";
+            });
+    }
+
+    // 🆘 LOAD SOS NUMBERS
+    function loadSOS() {
+        const btn = document.querySelector('button[onclick="loadSOS()"]');
+        const originalText = btn.innerText;
+        btn.innerText = "Loading...";
+        btn.disabled = true;
+
+        fetch(`/trip/{{ trip.id }}/get_sos`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('sos-content').classList.remove('d-none');
+                document.getElementById('sos-police').innerText = data.Police || "112";
+                document.getElementById('sos-ambulance').innerText = data.Ambulance || "112";
+                document.getElementById('sos-fire').innerText = data.Fire || "112";
+                btn.style.display = 'none';
+            })
+            .catch(err => {
+                console.error("SOS Error:", err);
+                btn.innerText = "Error (Try 112)";
+            });
+    }
+
+    function convertCurrency() {
+        const amount = document.getElementById('amount-input').value;
+        if (exchangeRate > 0) {
+            const result = (amount * exchangeRate).toFixed(2);
+            document.getElementById('conv-result').innerText = result;
+        }
+    }
+
+    // 📦 LOAD DEALS LOGIC
+    let dealsLoaded = false;
+
+    function loadDeals() {
+        if (dealsLoaded) return;
+
+        fetch(`/trip/{{ trip.id }}/get_deals`)
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById('deals-loader').classList.add('d-none');
+                const container = document.getElementById('deals-content');
+                container.classList.remove('d-none');
+
+                data.forEach(deal => {
+                    let searchUrl = "";
+                    if(deal.provider.toLowerCase().includes("makemytrip")) searchUrl = `https://www.makemytrip.com/search?q=${deal.search_term}`;
+                    else if(deal.provider.toLowerCase().includes("expedia")) searchUrl = `https://www.expedia.com/Hotel-Search?destination=${deal.search_term}`;
+                    else searchUrl = `https://www.google.com/search?q=${deal.provider} ${deal.search_term}`;
+
+                    const html = `
+                    <div class="col-md-4">
+                        <div class="card h-100 border hover-card">
+                            <div class="card-header bg-white border-0 fw-bold text-primary">
+                                ${deal.provider}
+                            </div>
+                            <div class="card-body">
+                                <h6 class="fw-bold">${deal.title}</h6>
+                                <div class="text-success fw-bold fs-5 my-2">${deal.price}</div>
+                                <p class="small text-muted mb-3">${deal.inclusions}</p>
+                                <a href="${searchUrl}" target="_blank" class="btn btn-outline-primary btn-sm w-100 rounded-pill">
+                                    View Deal ↗
+                                </a>
+                            </div>
+                        </div>
+                    </div>`;
+                    container.innerHTML += html;
+                });
+                dealsLoaded = true;
+            })
+            .catch(err => {
+                console.error(err);
+                document.getElementById('deals-loader').innerHTML = '<p class="text-danger">Could not load deals.</p>';
+            });
+    }
+
+    // 1. 🕰️ LIVE DESTINATION CLOCK
+    function startLiveClock(timezoneStr) {
+        if (!timezoneStr) return;
+
+        const sign = timezoneStr.includes('+') ? 1 : -1;
+        const parts = timezoneStr.replace('UTC', '').replace('+', '').replace('-', '').split(':');
+        const offsetHours = parseInt(parts[0]);
+        const offsetMinutes = parts[1] ? parseInt(parts[1]) : 0;
+        const totalOffsetMinutes = sign * ((offsetHours * 60) + offsetMinutes);
+
+        function update() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const destTime = new Date(utc + (3600000 * (totalOffsetMinutes / 60)));
+
+            const hours = destTime.getHours().toString().padStart(2, '0');
+            const mins = destTime.getMinutes().toString().padStart(2, '0');
+
+            document.getElementById('live-clock').innerText = `${hours}:${mins}`;
+            document.getElementById('live-clock-badge').classList.remove('d-none');
+        }
+
+        update(); 
+        setInterval(update, 60000); 
+    }
+
+    // 2. 📋 COPY ITINERARY TEXT
+    function copyItineraryText() {
+        let text = "✈️ Trip to {{ trip.destination }}\n";
+        text += "📅 {{ trip.start_date.strftime('%b %d') }} - {{ trip.end_date.strftime('%b %d') }}\n\n";
+
+        const items = document.querySelectorAll('.timeline .hover-card');
+        items.forEach(item => {
+            const date = item.querySelector('.fw-bold.fs-5').innerText;
+            const time = item.querySelector('.text-muted.small').innerText.split('•')[0].trim();
+            const name = item.querySelector('h6').innerText;
+            text += `🔹 [${date}th] ${time}: ${name}\n`;
+        });
+
+        text += "\nSent from AI Trip Architect 🚀";
+
+        navigator.clipboard.writeText(text).then(() => {
+            alert("✅ Itinerary copied!\n\nPaste it into WhatsApp, Notes, or Email.");
+        });
+    }
+
+    // 3. ✅ CLICK TO MARK AS DONE (Visual Only)
+    document.addEventListener('click', function(e) {
+        const card = e.target.closest('.timeline .hover-card');
+        if (card && !e.target.closest('a') && !e.target.closest('button')) {
+            if (card.style.opacity === '0.5') {
+                card.style.opacity = '1';
+                card.querySelector('h6').style.textDecoration = 'none';
+            } else {
+                card.style.opacity = '0.5';
+                card.querySelector('h6').style.textDecoration = 'line-through';
+            }
+        }
+    });
+</script>
+
+<div class="position-fixed bottom-0 end-0 p-4 d-md-none" style="z-index: 1050;">
+    <div class="dropdown">
+        <button class="btn btn-primary rounded-circle shadow-lg d-flex align-items-center justify-content-center"
+                type="button" data-bs-toggle="dropdown" style="width: 60px; height: 60px;">
+            <i class="bi bi-plus-lg fs-2"></i>
+        </button>
+        <ul class="dropdown-menu dropdown-menu-end shadow-lg border-0 rounded-4 p-2 mb-2">
+            <li>
+                <a class="dropdown-item rounded-3 py-2 fw-medium" href="#pills-itinerary" onclick="document.getElementById('pills-itinerary-tab').click()">
+                    <i class="bi bi-calendar-plus me-2 text-primary"></i> Add Activity
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item rounded-3 py-2 fw-medium" href="#pills-budget" onclick="document.getElementById('pills-budget-tab').click()">
+                    <i class="bi bi-cash-coin me-2 text-success"></i> Add Expense
+                </a>
+            </li>
+            <li>
+                <a class="dropdown-item rounded-3 py-2 fw-medium" href="#pills-journal" onclick="document.getElementById('pills-journal-tab').click()">
+                    <i class="bi bi-journal-plus me-2 text-warning"></i> Write Diary
+                </a>
+            </li>
+        </ul>
+    </div>
+</div>
+{% endblock %}
